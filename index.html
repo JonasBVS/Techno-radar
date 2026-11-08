@@ -1,80 +1,22 @@
-<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Techno Radar</title><style>body{margin:0;background:#090909;color:#f5f2e9;font:16px system-ui}.w{max-width:1200px;margin:auto;padding:35px}header{background:#151515;border-bottom:1px solid #333}h1{font-size:clamp(3rem,9vw,7rem);letter-spacing:-.08em;line-height:.85;margin:15px 0}p{color:#aaa}.k,.g{color:#c6ff00}button{border:1px solid #c6ff00;background:none;color:#c6ff00;padding:8px;cursor:pointer}button.on,button:hover{background:#c6ff00;color:#111}.bar{display:flex;justify-content:space-between;align-items:end;gap:20px}.box{overflow:auto;border:1px solid #333}table{width:100%;min-width:900px;border-collapse:collapse}th,td{padding:13px;text-align:left;vertical-align:top;border-bottom:1px solid #333}th{color:#c6ff00;text-transform:uppercase;font-size:.72rem}td{font-size:.9rem}a{color:#f5f2e9}footer{color:#aaa;border-top:1px solid #333}</style><header><div class=w><b class=k>WEEKLY TECHNO RADAR · DENMARK FIRST</b><h1>Techno Radar</h1><p>Techno, hard techno, industrial and electronic events — Denmark first, then road trips and short flights.</p><p id=stat></p></div></header><main class=w><div class=bar><div><h2>Upcoming events</h2><p>Save events to a private shortlist in this browser. Your list stays after closing the browser, until you clear site data.</p></div><button id=filter>Show saved only</button></div><div class=box><table><thead><tr><th>Date</th><th>Event / lineup</th><th>Venue & location</th><th>Genre</th><th>Price</th><th>Link</th><th></th></tr></thead><tbody id=rows></tbody></table></div></main><footer class=w>Checked against Resident Advisor and official promoter, festival, venue, and artist links. Confirm details before travelling.</footer><p id=save-status role=status aria-live=polite class=w></p><script>
+<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Techno Radar</title><style>body{margin:0;background:#090909;color:#f5f2e9;font:16px system-ui}.w{max-width:1200px;margin:auto;padding:35px}header{background:#151515;border-bottom:1px solid #333}h1{font-size:clamp(3rem,9vw,7rem);letter-spacing:-.08em;line-height:.85;margin:15px 0}p{color:#aaa}.k,.g{color:#c6ff00}.telegram-share{display:inline-block;border:1px solid #c6ff00;color:#c6ff00;padding:8px;text-decoration:none;white-space:nowrap}.telegram-share:hover,.telegram-share:focus-visible{background:#c6ff00;color:#111}.bar{display:flex;justify-content:space-between;align-items:end;gap:20px}.box{overflow:auto;border:1px solid #333}table{width:100%;min-width:900px;border-collapse:collapse}th,td{padding:13px;text-align:left;vertical-align:top;border-bottom:1px solid #333}th{color:#c6ff00;text-transform:uppercase;font-size:.72rem}td{font-size:.9rem}a{color:#f5f2e9}footer{color:#aaa;border-top:1px solid #333}</style><header><div class=w><b class=k>WEEKLY TECHNO RADAR · DENMARK FIRST</b><h1>Techno Radar</h1><p>Techno, hard techno, industrial and electronic events — Denmark first, then road trips and short flights.</p><p id=stat></p></div></header><main class=w><div class=bar><div><h2>Upcoming events</h2><p>Share an event to a Telegram chat, group, channel or Saved Messages. Choose the destination in Telegram before sending.</p></div></div><div class=box><table><thead><tr><th>Date</th><th>Event / lineup</th><th>Venue & location</th><th>Genre</th><th>Price</th><th>Link</th><th>Share</th></tr></thead><tbody id=rows></tbody></table></div></main><footer class=w>Checked against Resident Advisor and official promoter, festival, venue, and artist links. Confirm details before travelling.</footer><script>
 "use strict";
-const K = "techno-radar-saved";
 const rows = document.getElementById("rows");
 const stat = document.getElementById("stat");
-const filterButton = document.getElementById("filter");
-const notice = document.getElementById("save-status");
-let E = [], only = false;
-function parseSaved(raw) {
-  const value = JSON.parse(raw || "[]");
-  if (!Array.isArray(value) || !value.every(x => typeof x === "string")) throw new Error("Invalid saved list");
-  return new Set(value);
-}
-function readSaved() {
-  try {
-    const raw = localStorage.getItem(K);
-    if (raw !== null) return parseSaved(raw);
-  } catch (_) {}
-  try {
-    const cookie = document.cookie.split("; ").find(x => x.startsWith(K + "="));
-    return parseSaved(cookie ? decodeURIComponent(cookie.slice(K.length + 1)) : null);
-  } catch (_) { return new Set(); }
-}
-let S = readSaved();
-const id = x => x[0] + "|" + x[1];
-function persist(next) {
-  const raw = JSON.stringify([...next]);
-  try {
-    localStorage.setItem(K, raw);
-    if (localStorage.getItem(K) === raw) {
-      // Remove any older fallback so it cannot restore removed favourites.
-      document.cookie = K + "=; Max-Age=0; Path=/; SameSite=Lax";
-      return true;
-    }
-  } catch (_) {}
-  try {
-    const value = encodeURIComponent(raw);
-    if (value.length > 3500) return false;
-    document.cookie = K + "=" + value + "; Max-Age=31536000; Path=/; SameSite=Lax" + (location.protocol === "https:" ? "; Secure" : "");
-    return document.cookie.split("; ").some(x => x === K + "=" + value);
-  } catch (_) { return false; }
-}
 const escapeHTML = value => String(value).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function r() {
-  const visible = E.map((event, index) => ({event, index})).filter(({event}) => !only || S.has(id(event)));
-  rows.innerHTML = visible.length ? visible.map(({event:x,index}) => {
-    const saved = S.has(id(x));
-    return `<tr><td>${escapeHTML(x[0])}</td><td>${escapeHTML(x[1])}</td><td>${escapeHTML(x[2])}</td><td class=g>${escapeHTML(x[3])}</td><td>${escapeHTML(x[4])}</td><td><a target=_blank rel=noopener href="${escapeHTML((x[5].startsWith("https://") || x[5].startsWith("http://")) ? x[5] : "#")}">Open</a></td><td><button type=button class="${saved ? "on" : ""}" aria-pressed="${saved}" aria-label="${saved ? "Unsave" : "Save"} ${escapeHTML(x[1])}" data-i="${index}">${saved ? "Saved" : "Save"}</button></td></tr>`;
-  }).join("") : '<tr><td colspan="7">' + (only ? "No saved events yet. Save an event from the full list." : "No upcoming events.") + '</td></tr>';
-  stat.textContent = E.length + " events · " + E.filter(x => S.has(id(x))).length + " saved · Updated 9 November 2026";
-  filterButton.textContent = only ? "Show all events" : "Show saved only";
-  filterButton.setAttribute("aria-pressed", String(only));
+const eventURL = event => event[5].startsWith("https://") || event[5].startsWith("http://") ? event[5] : "";
+function telegramURL(event) {
+  const text = [event[1], "Date: " + event[0], "Venue: " + event[2], "Genre: " + event[3], "Price: " + event[4], "", "Found on Techno Radar"].join("\n");
+  return "https://t.me/share/url?url=" + encodeURIComponent(eventURL(event)) + "&text=" + encodeURIComponent(text);
 }
-rows.addEventListener("click", event => {
-  const button = event.target.closest("button[data-i]");
-  if (!button || !rows.contains(button)) return;
-  const entry = E[Number(button.dataset.i)];
-  if (!entry) return;
-  const key = id(entry), next = new Set(S), removing = next.has(key);
-  removing ? next.delete(key) : next.add(key);
-  if (!persist(next)) {
-    notice.textContent = "Your browser could not store this change. Allow site storage and try again.";
-    return;
-  }
-  S = next;
-  notice.textContent = removing ? "Event removed from your saved list." : "Event saved. It will be here when you return in this browser.";
-  r();
-});
-filterButton.addEventListener("click", () => { only = !only; r(); });
-window.addEventListener("storage", event => {
-  if (event.key === K || event.key === null) { S = readSaved(); r(); }
-});
+function render(events) {
+  rows.innerHTML = events.length ? events.map(event => `<tr><td>${escapeHTML(event[0])}</td><td>${escapeHTML(event[1])}</td><td>${escapeHTML(event[2])}</td><td class=g>${escapeHTML(event[3])}</td><td>${escapeHTML(event[4])}</td><td><a target=_blank rel="noopener noreferrer" href="${escapeHTML(eventURL(event) || "#")}">Open</a></td><td><a class="telegram-share" target="_blank" rel="noopener noreferrer" aria-label="Share ${escapeHTML(event[1])} to Telegram" href="${escapeHTML(telegramURL(event))}">Share to Telegram</a></td></tr>`).join("") : '<tr><td colspan="7">No upcoming events.</td></tr>';
+  stat.textContent = events.length + " events · Updated 9 November 2026";
+}
 fetch("events.json", {cache:"no-store"}).then(response => {
   if (!response.ok) throw new Error("Event list unavailable");
   return response.json();
 }).then(data => {
   if (!Array.isArray(data) || !data.every(x => Array.isArray(x) && x.length >= 6 && x.every(v => typeof v === "string"))) throw new Error("Invalid events");
-  E = data; r();
+  render(data);
 }).catch(() => { stat.textContent = "Event list could not be loaded. Please refresh."; });
 </script>
