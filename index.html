@@ -1,1 +1,80 @@
-<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Techno Radar</title><style>body{margin:0;background:#090909;color:#f5f2e9;font:16px system-ui}.w{max-width:1200px;margin:auto;padding:35px}header{background:#151515;border-bottom:1px solid #333}h1{font-size:clamp(3rem,9vw,7rem);letter-spacing:-.08em;line-height:.85;margin:15px 0}p{color:#aaa}.k,.g{color:#c6ff00}button{border:1px solid #c6ff00;background:none;color:#c6ff00;padding:8px;cursor:pointer}button.on,button:hover{background:#c6ff00;color:#111}.bar{display:flex;justify-content:space-between;align-items:end;gap:20px}.box{overflow:auto;border:1px solid #333}table{width:100%;min-width:900px;border-collapse:collapse}th,td{padding:13px;text-align:left;vertical-align:top;border-bottom:1px solid #333}th{color:#c6ff00;text-transform:uppercase;font-size:.72rem}td{font-size:.9rem}a{color:#f5f2e9}footer{color:#aaa;border-top:1px solid #333}</style><header><div class=w><b class=k>WEEKLY TECHNO RADAR · DENMARK FIRST</b><h1>Techno Radar</h1><p>Techno, hard techno, industrial and electronic events — Denmark first, then road trips and short flights.</p><p id=stat></p></div></header><main class=w><div class=bar><div><h2>Upcoming events</h2><p>Save events to a private shortlist in this browser.</p></div><button id=filter>Show saved only</button></div><div class=box><table><thead><tr><th>Date</th><th>Event / lineup</th><th>Venue & location</th><th>Genre</th><th>Price</th><th>Link</th><th></th></tr></thead><tbody id=rows></tbody></table></div></main><footer class=w>Checked against Resident Advisor and official promoter, festival, venue, and artist links. Confirm details before travelling.</footer><script>const K="techno-radar-saved";let E=[],S=new Set(JSON.parse(localStorage.getItem(K)||"[]")),only=false,id=x=>x[0]+"|"+x[1];function r(){let A=only?E.filter(x=>S.has(id(x))):E;rows.innerHTML=A.map(x=>`<tr><td>${x[0]}</td><td>${x[1]}</td><td>${x[2]}</td><td class=g>${x[3]}</td><td>${x[4]}</td><td><a target=_blank rel=noopener href="${x[5]}">Open</a></td><td><button class=${S.has(id(x))?"on":""} data-i=${E.indexOf(x)}>${S.has(id(x))?"Saved":"Save"}</button></td></tr>`).join("");document.querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>{let x=E[b.dataset.i],k=id(x);S.has(k)?S.delete(k):S.add(k);localStorage.setItem(K,JSON.stringify([...S]));r()});stat.textContent=E.length+" events · "+S.size+" saved · Updated 9 November 2026";filter.textContent=only?"Show all events":"Show saved only"}filter.onclick=()=>{only=!only;r()};fetch("events.json",{cache:"no-store"}).then(x=>x.ok?x.json():Promise.reject()).then(x=>{E=Array.isArray(x)?x:[];r()}).catch(()=>{stat.textContent="Event list could not be loaded. Please refresh.";});</script>
+<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Techno Radar</title><style>body{margin:0;background:#090909;color:#f5f2e9;font:16px system-ui}.w{max-width:1200px;margin:auto;padding:35px}header{background:#151515;border-bottom:1px solid #333}h1{font-size:clamp(3rem,9vw,7rem);letter-spacing:-.08em;line-height:.85;margin:15px 0}p{color:#aaa}.k,.g{color:#c6ff00}button{border:1px solid #c6ff00;background:none;color:#c6ff00;padding:8px;cursor:pointer}button.on,button:hover{background:#c6ff00;color:#111}.bar{display:flex;justify-content:space-between;align-items:end;gap:20px}.box{overflow:auto;border:1px solid #333}table{width:100%;min-width:900px;border-collapse:collapse}th,td{padding:13px;text-align:left;vertical-align:top;border-bottom:1px solid #333}th{color:#c6ff00;text-transform:uppercase;font-size:.72rem}td{font-size:.9rem}a{color:#f5f2e9}footer{color:#aaa;border-top:1px solid #333}</style><header><div class=w><b class=k>WEEKLY TECHNO RADAR · DENMARK FIRST</b><h1>Techno Radar</h1><p>Techno, hard techno, industrial and electronic events — Denmark first, then road trips and short flights.</p><p id=stat></p></div></header><main class=w><div class=bar><div><h2>Upcoming events</h2><p>Save events to a private shortlist in this browser. Your list stays after closing the browser, until you clear site data.</p></div><button id=filter>Show saved only</button></div><div class=box><table><thead><tr><th>Date</th><th>Event / lineup</th><th>Venue & location</th><th>Genre</th><th>Price</th><th>Link</th><th></th></tr></thead><tbody id=rows></tbody></table></div></main><footer class=w>Checked against Resident Advisor and official promoter, festival, venue, and artist links. Confirm details before travelling.</footer><p id=save-status role=status aria-live=polite class=w></p><script>
+"use strict";
+const K = "techno-radar-saved";
+const rows = document.getElementById("rows");
+const stat = document.getElementById("stat");
+const filterButton = document.getElementById("filter");
+const notice = document.getElementById("save-status");
+let E = [], only = false;
+function parseSaved(raw) {
+  const value = JSON.parse(raw || "[]");
+  if (!Array.isArray(value) || !value.every(x => typeof x === "string")) throw new Error("Invalid saved list");
+  return new Set(value);
+}
+function readSaved() {
+  try {
+    const raw = localStorage.getItem(K);
+    if (raw !== null) return parseSaved(raw);
+  } catch (_) {}
+  try {
+    const cookie = document.cookie.split("; ").find(x => x.startsWith(K + "="));
+    return parseSaved(cookie ? decodeURIComponent(cookie.slice(K.length + 1)) : null);
+  } catch (_) { return new Set(); }
+}
+let S = readSaved();
+const id = x => x[0] + "|" + x[1];
+function persist(next) {
+  const raw = JSON.stringify([...next]);
+  try {
+    localStorage.setItem(K, raw);
+    if (localStorage.getItem(K) === raw) {
+      // Remove any older fallback so it cannot restore removed favourites.
+      document.cookie = K + "=; Max-Age=0; Path=/; SameSite=Lax";
+      return true;
+    }
+  } catch (_) {}
+  try {
+    const value = encodeURIComponent(raw);
+    if (value.length > 3500) return false;
+    document.cookie = K + "=" + value + "; Max-Age=31536000; Path=/; SameSite=Lax" + (location.protocol === "https:" ? "; Secure" : "");
+    return document.cookie.split("; ").some(x => x === K + "=" + value);
+  } catch (_) { return false; }
+}
+const escapeHTML = value => String(value).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function r() {
+  const visible = E.map((event, index) => ({event, index})).filter(({event}) => !only || S.has(id(event)));
+  rows.innerHTML = visible.length ? visible.map(({event:x,index}) => {
+    const saved = S.has(id(x));
+    return `<tr><td>${escapeHTML(x[0])}</td><td>${escapeHTML(x[1])}</td><td>${escapeHTML(x[2])}</td><td class=g>${escapeHTML(x[3])}</td><td>${escapeHTML(x[4])}</td><td><a target=_blank rel=noopener href="${escapeHTML((x[5].startsWith("https://") || x[5].startsWith("http://")) ? x[5] : "#")}">Open</a></td><td><button type=button class="${saved ? "on" : ""}" aria-pressed="${saved}" aria-label="${saved ? "Unsave" : "Save"} ${escapeHTML(x[1])}" data-i="${index}">${saved ? "Saved" : "Save"}</button></td></tr>`;
+  }).join("") : '<tr><td colspan="7">' + (only ? "No saved events yet. Save an event from the full list." : "No upcoming events.") + '</td></tr>';
+  stat.textContent = E.length + " events · " + E.filter(x => S.has(id(x))).length + " saved · Updated 9 November 2026";
+  filterButton.textContent = only ? "Show all events" : "Show saved only";
+  filterButton.setAttribute("aria-pressed", String(only));
+}
+rows.addEventListener("click", event => {
+  const button = event.target.closest("button[data-i]");
+  if (!button || !rows.contains(button)) return;
+  const entry = E[Number(button.dataset.i)];
+  if (!entry) return;
+  const key = id(entry), next = new Set(S), removing = next.has(key);
+  removing ? next.delete(key) : next.add(key);
+  if (!persist(next)) {
+    notice.textContent = "Your browser could not store this change. Allow site storage and try again.";
+    return;
+  }
+  S = next;
+  notice.textContent = removing ? "Event removed from your saved list." : "Event saved. It will be here when you return in this browser.";
+  r();
+});
+filterButton.addEventListener("click", () => { only = !only; r(); });
+window.addEventListener("storage", event => {
+  if (event.key === K || event.key === null) { S = readSaved(); r(); }
+});
+fetch("events.json", {cache:"no-store"}).then(response => {
+  if (!response.ok) throw new Error("Event list unavailable");
+  return response.json();
+}).then(data => {
+  if (!Array.isArray(data) || !data.every(x => Array.isArray(x) && x.length >= 6 && x.every(v => typeof v === "string"))) throw new Error("Invalid events");
+  E = data; r();
+}).catch(() => { stat.textContent = "Event list could not be loaded. Please refresh."; });
+</script>
